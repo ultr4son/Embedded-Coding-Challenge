@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
+set(CMAKE_C_COMPILER "gcc")
 
 project (test-memory-pool
         VERSION 1.0.0
@@ -6,7 +7,6 @@ project (test-memory-pool
 
 include_directories(.)
 link_directories(../ ./)
-
 set(CMAKE_CXX_FLAGS "-Wall -std=c99")
 
 # create executable

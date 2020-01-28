@@ -3,9 +3,8 @@
 #include <string>
 #include <iostream>
 #include <functional>
+#include <cmath>
 
-
-#define ASSIGN_WITH_TYPE(type, accessor, object, name, value, valueT) _assign<type>(object, name, payload["value"].accessor, valueT);
 
 
 //
@@ -84,7 +83,13 @@ public:
 
         return true;
     }
-
+	/*
+		payload: {
+			a: double,
+			b: double
+		}
+		Add two doubles a and b.
+	*/
 	bool add(rapidjson::Value& payload) {
 		cout << "Controller::add: command: \n";
 		if (payload.HasMember("a") && payload["a"].IsDouble() && payload.HasMember("b") && payload["b"].IsDouble()) {
@@ -99,10 +104,69 @@ public:
 		}
 		return true;
 	}
+	/*
+		payload: {
+			start: int,
+			end: int,
+			fizz_div: int,
+			buzz_div: int
+		}
+		For i in start to end, 
+		if i is divisible by fizz_div, print "fizz", 
+		if i is divisible by buzz_div, print "buzz", 
+		if i is divisible by both, print "fizzbuzz",
+		else print nothing.
+	*/
+	bool fizzbuzz(rapidjson::Value& payload) {
+		cout << "Controller::fizzbuzz: command: \n";
+		if (payload.HasMember("start") && payload["start"].IsInt() 
+			&& payload.HasMember("end") && payload["end"].IsInt() 
+			&& payload.HasMember("fizz_div") && payload["fizz_div"].IsInt() 
+			&& payload.HasMember("buzz_div") && payload["buzz_div"].IsInt()) {
 
+			int start = payload["start"];
+			int end = payload["end"];
+			int fizz_div = payload["fizz_div"];
+			int buzz_div = payload["buzz_div"];
+
+			for (int i = start; i < end; i++) {
+				cout << i << ":"
+				if (i % fizz_div == 0) {
+					cout << "fizz";
+				}
+				if (i % buzz_div == 0) {
+					cout << "buzz";
+				}
+				cout << endl;
+
+			}
+
+		}
+		else {
+			return false;
+		}
+		return true;
+	}
+	/*
+		payload: {
+			tree: object,
+			find: string
+		}
+		Gives the (depth, branch) location of the key find in the object tree.
+		For example, for the object:
+		{ 
+			"wow": {
+				"cool": {}
+				"neat": {}
+			}
+		}
+		find = "neat" will give the position 1, 1
+		Expects tree to be composed of only objects.
+	*/
 	bool find(rapidjson::Value& payload) {
 		cout << "Controller::find: command: \n";
 		if (payload.HasMember("tree") && payload["tree"].IsObject() && payload.HasMember("find") && payload["find"].IsString()) {
+
 			Value tree = payload["tree"].GetObject();
 			string find = payload["find"].GetString();
 			
@@ -114,71 +178,82 @@ public:
 			else {
 				cout << find << " is not is tree." << endl;
 			}
+			return true;
+
 		}
-		return true;
+		else {
+			return false;
+		}
 	}
 
-	bool flatten(rapidjson::Value& payload) {
-		cout << "Controller::flatten: command: \n";
-		if (payload.HasMember("tree") && payload["tree"].IsObject() && payload.HasMember("levels") && payload["levels"].IsInt()) {
-			Value tree = payload["tree"].GetObject();
-			int levels = payload["levels"].GetInt();
+	/*
+		payload: {
+			object: object,
+			name: string,
+			value: any
+		}
+		Replaces all values in object with the key name and the same type as value with value.
+	*/
+	bool assign(rapidjson::Value& payload) {
+		if (payload.HasMember("object") && payload["object"].IsObject() && payload.HasMember("name") && payload["name"].IsString() && payload.HasMember("value")) {
+			Value object = payload["object"].GetObject();
+			string name = payload["name"].GetString();
+
+			//For setting values in object
 			Document d;
 			MemoryPoolAllocator<CrtAllocator>& allocator = d.GetAllocator();
 
-			Value& flattened = _flatten(tree, levels, allocator);
 
+			_assign(object, name, payload["value"], allocator);
+
+			//Print object
 			StringBuffer buffer;
 			Writer<StringBuffer> writer(buffer);
-			d.Accept(writer);
+			object.Accept(writer);
 			cout << buffer.GetString() << endl;
+
+			return true;
+
 		}
-		return true;
-	}
-
-
-	bool assign(rapidjson::Value& payload) {
-		if (payload.HasMember("object") && payload["object"].IsObject() && payload.HasMember("name") && payload.IsString() && payload.HasMember("value")) {
-			Value object = payload["object"].GetObject();
-			string name = payload["name"].GetString();
-			switch (payload.GetType()) {
-			case kStringType: 
-				_assign<string>(object, name, payload["value"].GetString(), kStringType);
-				break;
-			}
-			_assign(object, name, )
-
-			Document d;
-			
-			
-
-			StringBuffer buffer;
-			Writer<StringBuffer> writer(buffer);
-			d.Accept(writer);
-			cout << buffer.GetString() << endl;
+		else {
+			return false;
 		}
-
 	}
 
 private:
-	template<typename T> 
-	void _assign(Value& node, string name, T value, Type valueT) {
+	/*
+		Recursive helper function to assign.
+	*/
+	void _assign(Value& node, string name, Value& value, MemoryPoolAllocator<>& allocator) {
+		
+		//Find value with same name and type as name and value
+		Value::ConstMemberIterator itr = node.FindMember(name.c_str());
+		if (itr != node.MemberEnd() && node[itr->name.GetString()].GetType() == value.GetType()) {
+			node[itr->name.GetString()] = value;
+		}
+
+		//Recursively go through object
 		for (auto& member : node.GetObject()) {
-			if (member.name == name && member.value.GetType() == valueT) {
-				member.value.Set<T>(value);
-			}
-			else if (member.value.GetType() == kObjectType) {
-				_assign(member.value, name, value, valueT);
+			if (member.value.GetType() == kObjectType) {
+				_assign(member.value, name, value, allocator);
 			}
 		}
 	}
+
+	/*
+		Recursive helper function to find. Expects tree to be object.
+	*/
 	tuple<int, int> _find(Value& tree, string find, int depth) {
 		int e = 0;
 		for (auto& member : tree.GetObject()) {
 			cout << "member: " << member.name.GetString() << endl;
+			
+			//If member found, get location.
 			if (member.name.GetString() == find) {
 				return std::make_tuple(depth, e);
 			}
+
+			//Go through each leaf.
 			Value leaf = member.value.GetObject();
 			tuple<int, int> find_result = _find(leaf, find, depth + 1);
 			if (get<0>(find_result) != -1 && get<1>(find_result) != -1) {
@@ -190,32 +265,13 @@ private:
 		return std::make_tuple(-1, -1);
 	}
 
-	Value& _flatten(Value& node, int depth, MemoryPoolAllocator<CrtAllocator>& allocator) {
-		if (depth == 0) {
-			return node;
-		}
-		if (node.GetType() == Type::kObjectType) {
-			for (auto& m : node.GetObject()) {
-				cout << m.name.GetString() << endl;
-				if (m.value.GetType() == Type::kObjectType) {
-					Value leaf = m.value.GetObject();
-					Value& leaf_flat = _flatten(leaf, depth - 1, allocator);
-					for (auto& f : leaf_flat.GetObject()) {
-						node.AddMember(f.name, f.value, allocator);
-					}
-					node.RemoveMember(m.name);
-				}
-
-			}
-		}
-
-		return node;
-		
-	}
-		// implement 3-4 more comands
 };
 
 // Bonus Question: why did I type cast this?
+// Doing a typedef of std::function<bool(rapidjson::Value &)> to CommandHandler gives a clearer purpose to what std::function<bool(rapidjson::Value &)> refers to in the code.
+// This also makes it less time consuming and error prone to write std::function<bool(rapidjson::Value &)>.
+// If using CommandHandler in other parts of the code, it will be more intuitive to the developer that what they are using relates to the CommandDispatcher and eliminates the chance of redefining what a CommandHandler is by writing std::function<bool(rapidjson::Value &)> wrong.
+
 typedef std::function<bool(rapidjson::Value &)> CommandHandler;
 
 class CommandDispatcher {
@@ -228,7 +284,9 @@ public:
     virtual ~CommandDispatcher()
     {
 		// question why is it virtual? Is it needed in this case?
-    }
+		// Virtual destructors are used when it is expected that a derived class will be instantiated as a pointer to the base class's type.
+		// This may be useful if there is a different impementation of dispatching desired (such as multithreading the dispatched commands).
+	}
 
     bool addCommandHandler(std::string command, CommandHandler handler)
     {
@@ -280,7 +338,10 @@ private:
     std::map<std::string, CommandHandler> command_handlers_;
 
     // Question: why delete these?
-    // delete unused constructors
+	// Deleting these constructors makes the class non-copyable.
+	// This prevents the class from being allocated 
+	// If the dispatcher had a non-sharable resource, like a lock, we would not want to have it be copied to other dispatchers.
+	// delete unused constructors
     CommandDispatcher (const CommandDispatcher&) = delete;
     CommandDispatcher& operator= (const CommandDispatcher&) = delete;
 
@@ -299,8 +360,9 @@ int main()
 	command_dispatcher.addCommandHandler("exit", std::bind(&Controller::exit, &controller, std::placeholders::_1));
 	command_dispatcher.addCommandHandler("help", std::bind(&Controller::help, &controller, std::placeholders::_1));
 	command_dispatcher.addCommandHandler("add", std::bind(&Controller::add, &controller, std::placeholders::_1));
-	command_dispatcher.addCommandHandler("flatten", std::bind(&Controller::flatten, &controller, std::placeholders::_1));
 	command_dispatcher.addCommandHandler("find", std::bind(&Controller::find, &controller, std::placeholders::_1));
+	command_dispatcher.addCommandHandler("assign", std::bind(&Controller::assign, &controller, std::placeholders::_1));
+	command_dispatcher.addCommandHandler("fizzbuzz", std::bind(&Controller::fizzbuzz, &controller, std::placeholders::_1));
 
     // command line interface for testing
     string command;

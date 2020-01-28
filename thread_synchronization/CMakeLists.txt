@@ -3,4 +3,4 @@ project(thread_synchronization)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(thread_synchronization thread_synchronization.cpp)
+add_executable(main main.cpp)

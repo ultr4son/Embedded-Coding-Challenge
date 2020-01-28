@@ -14,9 +14,9 @@
 #define MAX_MSG_SIZE 500
 #define FLE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-#define LOG_MESSAGE(format, args...) do { \
+#define LOG_MESSAGE(format, ...) do { \
 		char msg[MAX_MSG_SIZE]; \
-		sprintf(msg,format,##args);  \
+		sprintf(msg,format,##__VA_ARGS_);  \
 		printf("<%s:%s(%d)> %s\n",FLE,__func__,__LINE__,msg); \
 } while(0)
 
