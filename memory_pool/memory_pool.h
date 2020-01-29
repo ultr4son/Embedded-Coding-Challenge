@@ -21,8 +21,16 @@
 #include <stdbool.h>   // NOTE: c99 bool requires #include <stdbool.h>
 
 // Extra Credit: why is this typecast here but declared inside the *.c file?
+// Having the typedef in the .h file hides implementation details (size and layout) of the struct and allows for having multiple implmentations of the same interface defined in the .h file.
+
 // Extra Extra Credit: explain in detail how this is using Opaque data type?
+// An opaque data type is one whose exact structure is not defined in its interface (in this case a header file).
+// This enforces that the memory_pool type is "private" to an external developer because they do not have complete information of the type's structure.
+
 // Extra Extra Extra Credit: declaration vs definition
+// A declaration is a description of what the compiler should expect to be implemented by the program. 
+// Declarations allow for the developer to create interfaces to different aspects of the program, as the developer is now required by the compiler to create the accompanying definition code to the declaration code.
+// Definitions are implementations of the declared identifiers.
 
 typedef struct memory_pool memory_pool_t;
 

@@ -36,7 +36,7 @@ struct memory_pool {
 // HTODB = header to data block
 //     converts header pointer to container data block
 //
-#define MEMORY_POOL_HTODB(_header_, _block_size_) ((char *)_header_ - _block_size_)
+#define MEMORY_POOL_HTODB(_header_, _block_size_) ((void *)_header_ - _block_size_)
 
 // DBTOH = data block to header
 //     convert data block pointer to point to embedded header information block
@@ -70,7 +70,7 @@ memory_pool_t * memory_pool_init(size_t count, size_t block_size)
         // move to end of data block to create header
         //
 
-		memory_pool_block_header_t* header = ((char*)block + block_size);
+		memory_pool_block_header_t* header = (block + block_size);
 
 		header->magic = NODE_MAGIC;
 		header->inuse = true;
@@ -91,6 +91,7 @@ memory_pool_t * memory_pool_init(size_t count, size_t block_size)
     mp->count = count;
     mp->block_size = block_size;
     mp->available = count;
+	mp->shadow = &mp->pool;
 
     return n == count ? mp : NULL;
 }
@@ -100,7 +101,7 @@ bool memory_pool_destroy(memory_pool_t *mp)
 
     printf("memory_pool_destroy(mp = %p, count=%zu, block_size=%zu)\n", mp, mp->count, mp->block_size);
 
-	struct memory_pool_block_header* current = mp->pool;
+	struct memory_pool_block_header* current = *mp->shadow;
 
 	// free all data blocks from pool
 	for(int n = 0; n < mp->count; ++n ) {
@@ -139,7 +140,7 @@ void * memory_pool_acquire(memory_pool_t * mp)
 bool memory_pool_release(memory_pool_t *mp, void * data)
 {
     // move to header inside memory block using MEMORY_POOL_DBTOH(data, mp->block_size);
-	memory_pool_block_header_t* header = MEMORY_POOL_DBTOH((char*)data, mp->block_size);
+	memory_pool_block_header_t* header = MEMORY_POOL_DBTOH(data, mp->block_size);
 
 
     printf("memory_pool_release: data=%p, header=%p, block_size=%zu, next=%p\n",

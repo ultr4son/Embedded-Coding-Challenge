@@ -53,6 +53,61 @@ auto exit_command = R"(
  }
 )";
 
+auto add_command = R"( 
+ {
+  "command": "add",
+  "payload": {
+    "a": 5.2,
+    "b": 2.8934
+  }
+}
+)";
+
+auto fizzbuzz_command = R"( 
+ {
+  "command": "fizzbuzz",
+  "payload": {
+    "start": 0,
+    "end": 100,
+    "fizz_div": 5,
+    "buzz_div": 3
+  }
+}
+)";
+
+auto find_command = R"(
+{
+  "command": "find",
+  "payload": {
+    "tree": { 
+			"wow": {
+				"cool": {},
+				"neat": {}
+			}
+		},
+		"find": "neat"
+  }
+}
+)";
+
+auto assign_command = R"(
+	{
+  "command": "assign",
+  "payload": {
+    "object": {
+      "test_1": 1,
+      "test_2": "hi",
+      "test_3": {
+        "test_2": 3
+      }
+      
+    },
+    "name": "test_2",
+    "value": 3
+    }
+  }
+
+)";
 class Controller {
 public:
     bool help(rapidjson::Value &payload)
@@ -124,13 +179,13 @@ public:
 			&& payload.HasMember("fizz_div") && payload["fizz_div"].IsInt() 
 			&& payload.HasMember("buzz_div") && payload["buzz_div"].IsInt()) {
 
-			int start = payload["start"];
-			int end = payload["end"];
-			int fizz_div = payload["fizz_div"];
-			int buzz_div = payload["buzz_div"];
+			int start = payload["start"].GetInt();
+			int end = payload["end"].GetInt();
+			int fizz_div = payload["fizz_div"].GetInt();
+			int buzz_div = payload["buzz_div"].GetInt();
 
 			for (int i = start; i < end; i++) {
-				cout << i << ":"
+				cout << i << ":";
 				if (i % fizz_div == 0) {
 					cout << "fizz";
 				}
@@ -156,7 +211,7 @@ public:
 		For example, for the object:
 		{ 
 			"wow": {
-				"cool": {}
+				"cool": {},
 				"neat": {}
 			}
 		}
@@ -246,7 +301,6 @@ private:
 	tuple<int, int> _find(Value& tree, string find, int depth) {
 		int e = 0;
 		for (auto& member : tree.GetObject()) {
-			cout << "member: " << member.name.GetString() << endl;
 			
 			//If member found, get location.
 			if (member.name.GetString() == find) {
