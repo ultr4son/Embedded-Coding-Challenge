@@ -250,7 +250,7 @@ public:
 		Replaces all values in object with the key name and the same type as value with value.
 	*/
 	bool assign(rapidjson::Value& payload) {
-		cout << "Controller::find: command: \n";
+		cout << "Controller::assign: command: \n";
 		if (payload.HasMember("object") && payload["object"].IsObject() && payload.HasMember("name") && payload["name"].IsString() && payload.HasMember("value")) {
 			Value object = payload["object"].GetObject();
 			string name = payload["name"].GetString();
